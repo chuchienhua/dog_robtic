@@ -1,0 +1,60 @@
+<launch>
+	<!-- Arguments -->
+	<arg name="map_file" value="$(find tdk_navigation)/maps/0421.yaml" />
+	<!-- <arg name="map_file" default="$(find tdk_navigation)/maps/0508ob.yaml" /> -->
+	<arg name="open_rviz" default="true" />
+	<arg name="move_forward_only" default="false" />
+
+	<!-- Base Controller -->
+	<!-- <include file="$(find tdk_launch)/launch/start_base_control.launch"></include> -->
+	<include file="$(find tdk_launch)/launch/start_js_base_control.launch"></include>
+
+
+	<!-- Open Camera and view and Save-->
+    <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen">
+        <param name="video_device" value="/dev/video0" />
+        <param name="image_width" value="640" />
+        <param name="image_height" value="480" />
+        <param name="pixel_format" value="yuyv" />
+        <param name="color_format" value="yuv422p" />
+        <param name="camera_frame_id" value="usb_cam" />
+        <param name="io_method" value="mmap" />
+    </node>
+	    <!-- Open detect object-->
+	<!-- <node name="obstacle_detection_node" pkg="your_package_name" type="obstacle_marker" output="screen">
+    	<param name="scan_topic" value="/scan" />
+  	</node> -->
+
+    <node name="camera_capture_node" pkg="camera_capture_node" type="camera_capture_node" output="screen" />
+	<node name="my_tf_listener" pkg="my_tf_listener_pkg" type="my_tf_listener" output="screen" />       
+
+	<!-- Map server -->
+	<node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)" />
+
+	<!-- AMCL -->
+	<include file="$(find tdk_navigation)/launch/amcl.launch" />
+
+	<!-- move_base -->
+	<!-- <include file="$(find tdk_navigation)/launch/move_base.launch">
+		<arg name="move_forward_only" value="$(arg move_forward_only)" />
+	</include> -->
+	<include file="$(find tdk_navigation)/launch/move_base_teb.launch">
+		<arg name="move_forward_only" value="$(arg move_forward_only)" />
+	</include>
+
+	<!-- Laser scan matcher -->
+	<node pkg="laser_scan_matcher" type="laser_scan_matcher_node" name="laser_scan_matcher_node" output="screen">
+		<param name="use_imu" value="false" />
+		<param name="use_odom" value="false" />
+		<param name="fixed_frame" value="odom" />
+		<param name="base_frame" value="base_link" />
+		<param name="max_iterations" value="10" />
+	</node>
+
+
+	<!-- rviz -->
+	<group if="$(arg open_rviz)">
+		<node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(find tdk_navigation)/rviz/tdk_navigation.rviz" />
+	</group>
+
+</launch>
